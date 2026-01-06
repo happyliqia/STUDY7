@@ -1,0 +1,7 @@
+{
+  "name": "KidsBox English Adventure",
+  "description": "An interactive English learning platform for children based on KidsBox curriculum Units 1-10, featuring the Star family characters, vocabulary study, and quiz modules.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
