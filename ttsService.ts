@@ -1,73 +1,40 @@
 
-import { GoogleGenAI, Modality } from "@google/genai";
+/**
+ * Native Speech Synthesis Service
+ * Provides offline-capable text-to-speech using browser built-in APIs.
+ */
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-
-function decodeBase64(base64: string) {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
+export const speak = (text: string) => {
+  if (!('speechSynthesis' in window)) {
+    console.warn("Speech synthesis not supported in this browser.");
+    return;
   }
-  return bytes;
-}
 
-async function decodeAudioData(
-  data: Uint8Array,
-  ctx: AudioContext,
-  sampleRate: number,
-  numChannels: number,
-): Promise<AudioBuffer> {
-  const dataInt16 = new Int16Array(data.buffer);
-  const frameCount = dataInt16.length / numChannels;
-  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+  // Cancel any ongoing speech
+  window.speechSynthesis.cancel();
 
-  for (let channel = 0; channel < numChannels; channel++) {
-    const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < frameCount; i++) {
-      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-    }
+  const utterance = new SpeechSynthesisUtterance(text);
+  
+  // Try to find a high-quality English voice
+  const voices = window.speechSynthesis.getVoices();
+  
+  // Prefer English (UK or US) voices
+  const englishVoice = voices.find(voice => 
+    voice.lang.includes('en-GB') || voice.lang.includes('en-US')
+  ) || voices.find(voice => voice.lang.startsWith('en'));
+
+  if (englishVoice) {
+    utterance.voice = englishVoice;
   }
-  return buffer;
-}
 
-let audioContext: AudioContext | null = null;
+  utterance.lang = 'en-GB';
+  utterance.rate = 0.9; // Slightly slower for children to hear clearly
+  utterance.pitch = 1.1; // Friendly tone
 
-export const speak = async (text: string) => {
-  try {
-    if (!audioContext) {
-      audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-    }
-
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Say this clearly: ${text}` }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Puck' },
-          },
-        },
-      },
-    });
-
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (base64Audio) {
-      const audioBytes = decodeBase64(base64Audio);
-      const audioBuffer = await decodeAudioData(audioBytes, audioContext, 24000, 1);
-      
-      const source = audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(audioContext.destination);
-      source.start();
-    }
-  } catch (error) {
-    console.error("TTS Error:", error);
-    // Fallback to native browser TTS if API fails
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-GB';
-    window.speechSynthesis.speak(utterance);
-  }
+  window.speechSynthesis.speak(utterance);
 };
+
+// Ensure voices are loaded (some browsers load them asynchronously)
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.getVoices();
+}
