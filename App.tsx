@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { UnitData, ViewState } from './types';
 import { KIDS_BOX_UNITS, STAR_CHARACTERS } from './constants';
+import { speak } from './ttsService';
 
 // --- Sub-components ---
 
@@ -133,31 +134,40 @@ const App: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="bg-white p-6 rounded-3xl shadow-xl border-t-8 border-blue-400">
                 <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                  <span className="text-3xl">🔤</span> Vocabulary
+                  <span className="text-3xl">🔤</span> Vocabulary (Click to Hear)
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                   {selectedUnit.vocabulary.map((v, i) => (
-                    <div 
+                    <button 
                       key={i} 
-                      className="bg-blue-50 p-4 rounded-2xl text-left"
+                      onClick={() => speak(v.word)}
+                      className="bg-blue-50 p-4 rounded-2xl text-left hover:bg-blue-100 active:scale-95 transition-all group flex items-center justify-between"
                     >
-                      <div className="font-black text-xl text-blue-700">{v.word}</div>
-                      <div className="text-gray-500 font-bold text-sm">{v.translation}</div>
-                    </div>
+                      <div>
+                        <div className="font-black text-xl text-blue-700">{v.word}</div>
+                        <div className="text-gray-500 font-bold text-sm">{v.translation}</div>
+                      </div>
+                      <span className="text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity">🔊</span>
+                    </button>
                   ))}
                 </div>
               </div>
 
               <div className="bg-white p-6 rounded-3xl shadow-xl border-t-8 border-purple-400 h-fit">
                 <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                  <span className="text-3xl">💬</span> Say It!
+                  <span className="text-3xl">💬</span> Say It! (Click to Hear)
                 </h3>
                 <div className="space-y-4">
                   {selectedUnit.sentences.map((s, i) => (
-                    <div key={i} className="bg-purple-50 p-4 rounded-2xl">
+                    <button 
+                      key={i} 
+                      onClick={() => speak(s.english)}
+                      className="w-full bg-purple-50 p-4 rounded-2xl text-left hover:bg-purple-100 active:scale-95 transition-all group relative"
+                    >
                       <div className="text-purple-900 font-black text-lg mb-1">{s.english}</div>
                       <div className="text-purple-400 font-bold text-sm">{s.chinese}</div>
-                    </div>
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-300 opacity-0 group-hover:opacity-100">🔊</span>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -177,9 +187,12 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <h2 className="text-3xl font-black text-gray-800 mb-10 text-center">
-              {selectedUnit.quizzes[currentQuizIndex].question}
-            </h2>
+            <div className="flex items-center justify-center gap-3 mb-10 cursor-pointer group" onClick={() => speak(selectedUnit.quizzes[currentQuizIndex].question)}>
+               <h2 className="text-3xl font-black text-gray-800 text-center">
+                {selectedUnit.quizzes[currentQuizIndex].question}
+              </h2>
+              <span className="text-2xl group-hover:scale-125 transition-transform">🔊</span>
+            </div>
 
             <div className="grid grid-cols-1 gap-4">
               {selectedUnit.quizzes[currentQuizIndex].options.map((option, idx) => (
